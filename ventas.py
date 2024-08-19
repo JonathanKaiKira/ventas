@@ -86,3 +86,5 @@ class Ventas(tk.Frame):
 
         boton_ver_factura = tk.Button(lblframe1, text="Ver Facturas",bg="#dddddd", font="sans 12 bold")
         boton_ver_factura.place(x=750,y=10,width=240,height=50)
+
+    
