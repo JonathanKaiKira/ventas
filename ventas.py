@@ -116,11 +116,11 @@ class Ventas(tk.Frame):
             print("Error al cargar productos desde la base de datos: ", e)
 
     def actualizar_precio(self, event):
-        nombre_proiducto = self.entry_nombre.get()
+        nombre_producto = self.entry_nombre.get()
         try:
             conn = sqlite3.connect(self.db_name)
             c = conn.cursor()
-            c.execute("SELECT precio FROM inventario WHERE nombre = ?", (nombre_proiducto,))
+            c.execute("SELECT precio FROM inventario WHERE nombre = ?", (nombre_producto,))
             precio = c.fetchone()
             if(precio):
                 self.entry_valor.config(state="normal")
@@ -140,8 +140,13 @@ class Ventas(tk.Frame):
     def actualizar_total(self):
         total = 0.0
         for child in self.tree.get_children():
-            subtotal = float(self.tree.item(child, "values") [3])
-            total += subtotal
+            valores = self.tree.item(child, "values")
+            try:
+                subtotal = float(valores[3])  # Asegúrate de que este valor sea numérico
+                total += subtotal
+            except ValueError:
+                messagebox.showerror("Error", f"Valor inválido encontrado: {valores[3]}")
+                return
         self.label_suma_total.config(text=f"Total a pagar: CHL {total:.0f}")
 
     def registrar(self):
@@ -152,31 +157,36 @@ class Ventas(tk.Frame):
         if producto and precio and cantidad:
             try:
                 cantidad = int(cantidad)
+                precio = float(precio)
+
                 if not self.verificar_stock(producto, cantidad):
                     messagebox.showerror("Error", "Stock insuficiente para el producto seleccionado")
                     return
-                precio = float(precio)
-                subtotal = cantidad * cantidad
 
-                self.tree.insert("","end", values=(producto , f"{precio:.0f}", cantidad, f"{subtotal:.0f}"))
+                subtotal = cantidad * precio  # Subtotal correcto
 
+                self.tree.insert("", "end", values=(producto, f"{precio:.0f}", cantidad, f"{subtotal:.0f}"))
+
+                # Limpiar los campos después de la inserción
                 self.entry_nombre.set("")
                 self.entry_valor.config(state="normal")
                 self.entry_valor.delete(0, tk.END)
                 self.entry_valor.config(state="readonly")
-                self.entry_cantidad.config(0, tk.END)
+                self.entry_cantidad.delete(0, tk.END)
 
+                # Actualiza el total después de cada inserción
                 self.actualizar_total()
+
             except ValueError:
-                messagebox.showerror("Error", "Cantidad o Precio no valido")
+                messagebox.showerror("Error", "La cantidad o el precio no son válidos.")
         else:
-            messagebox.showerror("Error", "Debe completar todos los campos")
+            messagebox.showerror("Error", "Debe completar todos los campos.")
 
     def verificar_stock(self, nombre_producto, cantidad):
         try:
             conn = sqlite3.connect(self.db_name)
             c = conn.cursor()
-            c.execute("SELECT stock FROM inventario WHERE nombre = ?", (nombre_producto))
+            c.execute("SELECT stock FROM inventario WHERE nombre = ?", (nombre_producto,))
             stock = c.fetchone()
             if stock and stock[0] >= cantidad:
                 return True
